@@ -441,7 +441,7 @@ class ContractContract(models.Model):
                 "invoice_date": date_invoice,
                 "journal_id": journal.id,
                 "invoice_origin": self.name,
-                "user_id": self.user_id.id,
+                "invoice_user_id": self.user_id.id,
             }
         )
         return invoice_vals, move_form
@@ -546,7 +546,9 @@ class ContractContract(models.Model):
                 invoice_line_vals = line._prepare_invoice_line(move_form=move_form)
                 if invoice_line_vals:
                     # Allow extension modules to return an empty dictionary for
-                    # nullifying line
+                    # nullifying line. We should then cleanup certain values.
+                    del invoice_line_vals["company_id"]
+                    del invoice_line_vals["company_currency_id"]
                     invoice_vals["invoice_line_ids"].append((0, 0, invoice_line_vals))
             invoices_values.append(invoice_vals)
             # Force the recomputation of journal items
