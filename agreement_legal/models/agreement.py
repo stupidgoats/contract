@@ -3,6 +3,7 @@
 
 import ast
 import json as simplejson
+from datetime import timedelta
 
 from lxml import etree
 
@@ -210,6 +211,12 @@ class Agreement(models.Model):
         "agreement is an amendment to another agreement. This list will "
         "only show other agreements related to the same account.",
     )
+    create_uid_parent = fields.Many2one(
+        related="parent_agreement_id.create_uid", string="Created by (parent)"
+    )
+    create_date_parent = fields.Datetime(
+        related="parent_agreement_id.create_date", string="Created on (parent)"
+    )
     recital_ids = fields.One2many(
         "agreement.recital", "agreement_id", string="Recitals", copy=True
     )
@@ -225,7 +232,6 @@ class Agreement(models.Model):
         "parent_agreement_id",
         string="Previous Versions",
         copy=False,
-        domain=[("active", "=", False)],
         context={"active_test": False},
     )
     child_agreements_ids = fields.One2many(
@@ -280,19 +286,6 @@ class Agreement(models.Model):
         help="""Final placeholder expression, to be copy-pasted in the desired
          template field.""",
     )
-    created_by = fields.Many2one(
-        "res.users",
-        string="Created By",
-        copy=False,
-        default=lambda self: self.env.user,
-        help="User which create the agreement.",
-    )
-    date_created = fields.Datetime(
-        string="Created On",
-        copy=False,
-        default=lambda self: fields.Datetime.now(),
-        help="Date which create the agreement.",
-    )
     template_id = fields.Many2one(
         "agreement",
         string="Template",
@@ -301,6 +294,44 @@ class Agreement(models.Model):
     readonly = fields.Boolean(
         related="stage_id.readonly",
     )
+    readonly = fields.Boolean(
+        related="stage_id.readonly",
+    )
+    to_review_date = fields.Date(
+        compute="_compute_to_review_date",
+        store=True,
+        readonly=False,
+        help="Date used to warn us some days before agreement expires",
+    )
+
+    @api.depends("agreement_type_id", "end_date")
+    def _compute_to_review_date(self):
+        for record in self:
+            if record.end_date:
+                record.to_review_date = record.end_date + timedelta(
+                    days=-record.agreement_type_id.review_days
+                )
+
+    @api.model
+    def _alert_to_review_date(self):
+        agreements = self.search(
+            [
+                ("to_review_date", "=", fields.Date.today()),
+                ("agreement_type_id.review_user_id", "!=", False),
+            ]
+        )
+        for agreement in agreements:
+            if (
+                self.env["mail.activity"].search_count(
+                    [("res_id", "=", agreement.id), ("res_model", "=", self._name)]
+                )
+                == 0
+            ):
+                agreement.activity_schedule(
+                    "agreement_legal.mail_activity_review_agreement",
+                    user_id=agreement.agreement_type_id.review_user_id.id,
+                    note=_("Your activity is going to end soon"),
+                )
 
     # compute the dynamic content for jinja expression
     def _compute_dynamic_description(self):
@@ -385,8 +416,6 @@ class Agreement(models.Model):
             "parent_agreement_id": self.id,
             "version": self.version,
             "revision": self.revision,
-            "created_by": self.created_by.id,
-            "date_created": self.date_created,
             "code": "{}-V{}".format(self.code, str(self.version)),
             "stage_id": self.stage_id.id,
         }
@@ -401,15 +430,9 @@ class Agreement(models.Model):
             # Make a current copy and mark it as old
             rec.copy(default=rec._get_old_version_default_vals())
             # Update version, created by and created on
-            rec.update(
-                {
-                    "version": rec.version + 1,
-                    "created_by": self.env.user.id,
-                    "date_created": fields.Datetime.now(),
-                }
-            )
+            rec.update({"version": rec.version + 1})
             # Reset revision to 0 since it's a new version
-            rec.revision = 0
+        return super().write({"revision": 0})
 
     def _get_new_agreement_default_vals(self):
         self.ensure_one()

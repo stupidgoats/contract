@@ -48,11 +48,10 @@
         <field name="priority">18</field>
         <field name="inherit_id" ref="contract.contract_contract_supplier_form_view" />
         <field name="arch" type="xml">
-            <field name="partner_id" position="after">
-                <field
-                    name="payment_mode_id"
-                    domain="[('payment_type', '=', 'outbound')]"
-                />
+            <field name="payment_mode_id" position="attributes">
+                <attribute
+                    name="domain"
+                >[('payment_type', '=', 'outbound'), ('company_id', '=', company_id)]</attribute>
             </field>
         </field>
     </record>

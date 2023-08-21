@@ -7,9 +7,9 @@ Recurring - Contracts Management
    !! changes will be overwritten.                   !!
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-.. |badge1| image:: https://img.shields.io/badge/maturity-Beta-yellow.png
+.. |badge1| image:: https://img.shields.io/badge/maturity-Production%2FStable-green.png
     :target: https://odoo-community.org/page/development-status
-    :alt: Beta
+    :alt: Production/Stable
 .. |badge2| image:: https://img.shields.io/badge/licence-AGPL--3-blue.png
     :target: http://www.gnu.org/licenses/agpl-3.0-standalone.html
     :alt: License: AGPL-3
@@ -60,8 +60,8 @@ Usage
    * the recurrence parameters: interval (days, weeks, months, months last day or years),
      start date, date of next invoice (automatically computed, can be modified) and end date (optional)
    * auto-price, for having a price automatically obtained from the price list
-   * #START# or #END# in the description field to display the start/end date of
-     the invoiced period in the invoice line description
+   * #START# - #END# or #INVOICEMONTHNAME# in the description field to display
+     the start/end date or the start month of the invoiced period in the invoice line description
    * pre-paid (invoice at period start) or post-paid (invoice at start of next period)
 
 #. The "Generate Recurring Invoices from Contracts" cron runs daily to generate the invoices.
@@ -124,6 +124,7 @@ Contributors
     * Rafael Blasco
     * Víctor Martínez
 * Iván Antón <ozono@ozonomultimedia.com>
+* Eric Antones <eantones@nuobit.com>
 
 Maintainers
 ~~~~~~~~~~~
